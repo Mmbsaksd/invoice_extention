@@ -10,11 +10,13 @@ def analyze_text(text: str) -> List[dict]:
         ("system", (
             "You are a production-grade SAP extraction agent. Detect UNIQUE invoice boundaries. "
             "Extract: supplier, invoice_date, reference (invoice number), posting_date, amount, tax_amount. "
-            "\n- **reference**: Look for 'Invoice #', 'Reference', 'Doc No'. "
-            "\n- **posting_date**: Usually same as invoice_date. If missing, use invoice_date. "
-            "\n- **tax_amount**: Extract explicitly. If not found, use 0.0. "
-            "\n- **amount**: This is the TOTAL gross amount. "
-            "\nFormat dates as DD.MM.YYYY. No guessing. All amounts as strings."
+            "\n- **supplier**: Legal entity name of the vendor. "
+            "\n- **reference**: Look for 'Invoice #', 'Reference', 'Doc No', 'Bill No'. "
+            "\n- **invoice_date**: The date the invoice was issued (DD.MM.YYYY). "
+            "\n- **posting_date**: Leave empty. "
+            "\n- **tax_amount**: Explicitly find 'Tax', 'VAT', 'GST', 'MwSt'. Use '0.00' if not found. "
+            "\n- **amount**: This is the TOTAL gross amount (including tax). "
+            "\nFormat dates as DD.MM.YYYY. Ensure all amounts are numeric strings with '.' as decimal separator and NO thousands separators or currency symbols (e.g., '2724.57')."
         )),
         ("human", "{text}")
     ])

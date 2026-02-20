@@ -32,22 +32,36 @@ app.add_middleware(
 async def upload_invoices(files: List[UploadFile] = File(...)):
     import traceback
     all_results = []
+    from fastapi.concurrency import run_in_threadpool
+    import asyncio
+    from fastapi.concurrency import run_in_threadpool
+    
+    async def process_single_file(file):
+        with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            content = await file.read()
+            tmp.write(content)
+            path = tmp.name
+        try:
+            logger.info(f"Processing uploaded file: {file.filename}")
+            return await run_in_threadpool(process_invoice, path)
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
+
     try:
-        for file in files:
-            with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                content = await file.read()
-                tmp.write(content)
-                path = tmp.name
-            try:
-                logger.info(f"Processing uploaded file: {file.filename}")
-                results = process_invoice(path)
-                all_results.extend(results)
-            finally:
-                if os.path.exists(path):
-                    os.remove(path)
+        # Process all files concurrently
+        tasks = [process_single_file(file) for file in files]
+        results_nested = await asyncio.gather(*tasks)
+        
+        # Flatten results
+        for results in results_nested:
+            all_results.extend(results)
         
         session_store.add_invoices(all_results)
         return all_results
+    except ValueError as ve:
+        logger.error(f"Processing Error: {ve}")
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
         error_msg = traceback.format_exc()
         logger.error(f"Upload Error: {error_msg}")

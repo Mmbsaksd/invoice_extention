@@ -1,7 +1,7 @@
 import streamlit as st
 
 def render_header():
-    st.title("🤖 SAP Invoice Automator")
+    st.title("🤖 Invoice Assistant")
     st.markdown("Automate your invoice entry with precision.")
 
 def render_sidebar():

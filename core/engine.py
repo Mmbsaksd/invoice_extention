@@ -11,9 +11,12 @@ def process_invoice(pdf_path: str):
     logger.info(f"Starting extraction for: {pdf_path}")
     raw_text = extract_text(pdf_path)
     
-    if not raw_text.strip():
+    if not raw_text or not raw_text.strip():
         logger.warning(f"No text extracted from {pdf_path}")
-        return []
+        raise ValueError(
+            "No text found in PDF. If this is a scanned/image-based PDF, please ensure "
+            "Tesseract-OCR and Poppler (pdftoppm) are installed and in your system PATH."
+        )
     
     logger.info(f"Text extracted (length: {len(raw_text)}). Starting AI analysis...")
     invoices = analyze_text(raw_text)

@@ -10,10 +10,11 @@ def get_llm():
             azure_endpoint=get_env("AZURE_OPENAI_ENDPOINT"),
             azure_deployment=get_env("AZURE_OPENAI_DEPLOYMENT_NAME"),
             api_version=get_env("AZURE_OPENAI_API_VERSION"),
-            temperature=0
+            temperature=0,
+            request_timeout=60
         )
     if get_env("OPENAI_API_KEY"):
-        return ChatOpenAI(model="gpt-4o", temperature=0)
+        return ChatOpenAI(model="gpt-4o", temperature=0, request_timeout=60)
     if get_env("GOOGLE_API_KEY"):
-        return ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
+        return ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0, request_timeout=60)
     raise ValueError("Missing API Keys")

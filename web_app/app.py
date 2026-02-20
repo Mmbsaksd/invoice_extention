@@ -8,46 +8,65 @@ import asyncio
 # Initialization
 init_config()
 
-st.set_page_config(page_title="SAP Automator Pro", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="Invoice Assistant", page_icon="🤖", layout="wide")
 
-# Premium UI Styling
+# Premium UI Styling (Dark Mode)
 st.markdown("""
 <style>
     .stApp {
-        background: radial-gradient(circle at top right, #f8f9fa, #e9ecef);
+        background: #171717;
+        color: #ececf1;
     }
     .main-card {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 16px;
+        background: #212121;
+        border: 1px solid #444654;
+        border-radius: 12px;
         padding: 24px;
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         margin-bottom: 20px;
     }
     .invoice-row {
-        background: white;
-        border-radius: 12px;
+        background: #2f2f2f;
+        border-radius: 10px;
         padding: 15px;
         margin-bottom: 12px;
-        border-left: 5px solid #1a73e8;
-        transition: 0.3s;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-    .invoice-row:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    .stButton>button {
-        border-radius: 8px;
-        font-weight: 600;
+        border-left: 4px solid #10a37f;
         transition: 0.2s;
     }
-    .btn-fill {
-        background: #1a73e8 !important;
-        color: white !important;
+    .invoice-row:hover {
+        background: #353641;
+        transform: scale(1.01);
     }
-    .stHeader { color: #1a73e8; }
+    .stButton>button {
+        border-radius: 6px;
+        font-weight: 500;
+        background-color: #343541 !important;
+        color: white !important;
+        border: 1px solid #565869 !important;
+    }
+    .stButton>button:hover {
+        background-color: #40414f !important;
+        border-color: #acacbe !important;
+    }
+    .btn-fill {
+        background: #10a37f !important;
+        border: none !important;
+    }
+    .stHeader { color: #10a37f; }
+    h1, h2, h3, p, span, label {
+        color: #ececf1 !important;
+    }
+    .stCaption {
+        color: #9ea1b1 !important;
+    }
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        background-color: #171717 !important;
+        border-right: 1px solid #444654 !important;
+    }
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
+        color: #10a37f !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 

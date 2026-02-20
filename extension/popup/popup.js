@@ -16,22 +16,41 @@ const StorageManager = {
 };
 
 const ApiService = {
+    async fetchWithTimeout(url, options = {}, timeout = 30000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        try {
+            const response = await fetch(url, { ...options, signal: controller.signal });
+            clearTimeout(id);
+            return response;
+        } catch (e) {
+            clearTimeout(id);
+            throw e;
+        }
+    },
     async fetchInvoices() {
         try {
-            const res = await fetch(`${API_BASE}/invoices`);
+            const res = await this.fetchWithTimeout(`${API_BASE}/invoices`, {}, 5000);
             const data = await res.json();
             return Array.isArray(data) ? data : [];
-        } catch { return []; }
+        } catch (e) {
+            console.error("Fetch Invoices Failed:", e);
+            return [];
+        }
     },
     async uploadFiles(files) {
         const formData = new FormData();
         for (let i = 0; i < files.length; i++) {
             formData.append('files', files[i]);
         }
-        const res = await fetch(`${API_BASE}/upload`, {
+        const res = await this.fetchWithTimeout(`${API_BASE}/upload`, {
             method: 'POST',
             body: formData
-        });
+        }, 120000); // 2 minute timeout for uploads
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || "Server Error");
+        }
         return await res.json();
     },
     async clearAll() {
@@ -61,14 +80,32 @@ const UIController = {
                     Ref: ${inv.reference || '---'}<br>
                     Amount: $${inv.amount || '0.00'}
                 </div>
+                
+                <div class="details-expandable" id="details-${index}">
+                    <div class="detail-row"><span class="detail-label">Invoice Date:</span> <span class="detail-value">${inv.invoice_date || '---'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Posting Date:</span> <span class="detail-value">${inv.posting_date || '---'}</span></div>
+                    <div class="detail-row"><span class="detail-label">Tax Amount:</span> <span class="detail-value">$${inv.tax_amount || '0.00'}</span></div>
+                    ${inv.validation_error ? `<div class="detail-row" style="color:#ea4335"><span class="detail-label">Note:</span> <span class="detail-value">${inv.validation_error}</span></div>` : ''}
+                </div>
+
                 <div class="footer-tools">
-                    <button class="btn-skip" data-index="${index}">Skip</button>
-                    <button class="btn-fill" data-index="${index}">Fill SAP</button>
+                    <button class="toggle-btn" id="toggle-${index}">Details</button>
+                    <div class="btn-group">
+                        <button class="btn-skip" data-index="${index}">Skip</button>
+                        <button class="btn-fill" data-index="${index}">Fill SAP</button>
+                    </div>
                 </div>
             `;
 
+            const toggleBtn = card.querySelector(`#toggle-${index}`);
+            const expandable = card.querySelector(`#details-${index}`);
             const fillBtn = card.querySelector('.btn-fill');
             const skipBtn = card.querySelector('.btn-skip');
+
+            toggleBtn.onclick = () => {
+                expandable.classList.toggle('active');
+                toggleBtn.innerText = expandable.classList.contains('active') ? 'Hide' : 'Details';
+            };
 
             fillBtn.onclick = () => this.handleFill(inv, card);
             skipBtn.onclick = () => this.removeRow(card, inv);
@@ -86,15 +123,42 @@ const UIController = {
     },
 
     async handleFill(inv, card) {
-        this.updateStatus(`Filling ${inv.reference || 'invoice'}...`, 'loading');
-        chrome.runtime.sendMessage({ action: "FILL_FORM", data: inv }, (response) => {
-            if (response && response.success) {
-                this.updateStatus("Fill complete!", 'default');
-                this.removeRow(card, inv);
-            } else {
-                this.updateStatus("Error: " + (response ? response.error : "Failed"), 'error');
-            }
-        });
+        const fillBtn = card.querySelector('.btn-fill');
+        const originalText = fillBtn.innerText;
+
+        try {
+            this.updateStatus(`Filling ${inv.reference || 'invoice'}...`, 'loading');
+            fillBtn.classList.add('loading');
+            fillBtn.innerText = 'Wait...';
+            fillBtn.disabled = true;
+
+            chrome.runtime.sendMessage({ action: "FILL_FORM", data: inv }, (response) => {
+                fillBtn.classList.remove('loading');
+                fillBtn.innerText = originalText;
+                fillBtn.disabled = false;
+
+                const err = chrome.runtime.lastError;
+                if (err) {
+                    this.updateStatus("Extension Error: Please REFRESH the page.", 'error');
+                    console.error("Popup Message Error:", err);
+                    return;
+                }
+
+                if (response && response.success) {
+                    const filledMsg = response.filled !== undefined ? ` (${response.filled} fields)` : '';
+                    this.updateStatus(`Done!${filledMsg}`, 'default');
+                    this.removeRow(card, inv);
+                } else {
+                    const errorMsg = response ? response.error : "No response from page";
+                    this.updateStatus("Error: " + errorMsg, 'error');
+                }
+            });
+        } catch (e) {
+            console.error("HandleFill Exception:", e);
+            fillBtn.classList.remove('loading');
+            fillBtn.innerText = originalText;
+            fillBtn.disabled = false;
+        }
     },
 
     removeRow(card, inv) {
@@ -123,16 +187,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (fileInput.files.length === 0) return;
 
         try {
-            UIController.updateStatus(`Uploading ${fileInput.files.length} file(s)...`, 'loading');
+            const count = fileInput.files.length;
+            const statusMsg = count > 1 ? `Processing batch of ${count} files...` : `Uploading ${count} file(s)...`;
+            UIController.updateStatus(statusMsg, 'loading');
             const results = await ApiService.uploadFiles(fileInput.files);
-            UIController.updateStatus("Processing complete!", 'default');
+
+            if (!results || results.length === 0) {
+                UIController.updateStatus("No invoices found. Ensure OCR dependencies are installed.", 'error');
+            } else {
+                UIController.updateStatus("Processing complete!", 'default');
+            }
 
             // Auto refresh
             State.invoices = await ApiService.fetchInvoices();
             await StorageManager.save();
             UIController.renderList();
         } catch (e) {
-            UIController.updateStatus("Upload failed.", 'error');
+            let msg = "Upload failed.";
+            if (e.name === 'AbortError') msg = "Timeout: Server took too long.";
+            else if (e.message) msg = `Error: ${e.message.split('\n')[0]}`;
+            UIController.updateStatus(msg, 'error');
             console.error(e);
         } finally {
             fileInput.value = ''; // Reset
@@ -140,14 +214,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     refreshBtn.onclick = async () => {
+        if (!confirm("Clear all processed invoices and reset?")) return;
         try {
-            UIController.updateStatus("Syncing...", 'loading');
-            State.invoices = await ApiService.fetchInvoices();
+            UIController.updateStatus("Clearing all data...", 'loading');
+            await ApiService.clearAll();
+            State.invoices = [];
             await StorageManager.save();
             UIController.renderList();
-            UIController.updateStatus("Refreshed.", 'default');
+            UIController.updateStatus("System Reset.", 'default');
         } catch (e) {
-            UIController.updateStatus("Error: API Offline", 'error');
+            UIController.updateStatus("Reset failed.", 'error');
             console.error(e);
         }
     };

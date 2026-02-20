@@ -55,9 +55,25 @@ class SessionStore:
     def get_all_invoices(self) -> List[dict]:
         return self.pending_invoices
 
+    def _invoice_key(self, inv: dict) -> str:
+        return f"{str(inv.get('supplier')).lower()}_{str(inv.get('reference')).lower()}"
+
     def add_invoices(self, invoices: List[dict], file_hash: str = None):
         self._load()
-        self._pending_invoices.extend(invoices)
+        
+        # Global Deduplication: Only add if not already in pending
+        existing_keys = {self._invoice_key(inv) for inv in self._pending_invoices}
+        
+        new_items = []
+        for inv in invoices:
+            key = self._invoice_key(inv)
+            if key not in existing_keys:
+                new_items.append(inv)
+                existing_keys.add(key)
+        
+        if new_items:
+            self._pending_invoices.extend(new_items)
+            
         if file_hash:
             self._processed_file_hashes.add(file_hash)
         self._save()
