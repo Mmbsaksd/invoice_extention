@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>SAP Automator Pro</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --primary-glow: rgba(26, 115, 232, 0.4);
+            --bg: #eff2f6;
+            --glass: rgba(255, 255, 255, 0.85);
+            --text: #202124;
+            --border: rgba(218, 226, 239, 0.8);
+        }
+
+        body {
+            width: 400px;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #eff2f6 0%, #dfe4ea 100%);
+            color: var(--text);
+            margin: 0;
+            padding: 16px;
+            min-height: 420px;
+        }
+
+        .glass-container {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .title {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .card.fade-out {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+        }
+
+        .vendor {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 6px;
+            display: block;
+            color: #1a1b1e;
+        }
+
+        .details {
+            font-size: 13px;
+            color: #5f6368;
+            line-height: 1.5;
+        }
+
+        .footer-tools {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 12px;
+            gap: 10px;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+
+        .btn-fill {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .btn-fill:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 16px var(--primary-glow);
+        }
+
+        .btn-skip {
+            background: #f1f3f4;
+            color: #3c4043;
+        }
+
+        .btn-skip:hover {
+            background: #e8eaed;
+        }
+
+        .btn-upload {
+            background: #ffffff;
+            color: var(--primary);
+            border: 1.5px solid var(--primary);
+            padding: 6px 12px;
+        }
+
+        .btn-upload:hover {
+            background: #f8faff;
+        }
+
+        .btn-refresh {
+            background: #f1f3f4;
+            padding: 6px 10px;
+            border-radius: 8px;
+        }
+
+        .status-badge {
+            font-size: 11px;
+            background: #e6f4ea;
+            color: #1e8e3e;
+            padding: 3px 8px;
+            border-radius: 20px;
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            font-weight: 600;
+        }
+
+        #status-bar {
+            font-size: 12px;
+            color: #5f6368;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: #34a853;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #70757a;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glass-container">
+        <div class="header">
+            <span class="title">SAP Automator</span>
+            <div class="controls">
+                <input type="file" id="file-input" style="display: none;" multiple accept="application/pdf">
+                <button class="btn-upload" id="btn-upload">Upload PDF</button>
+                <button class="btn-refresh" id="btn-refresh">🔄</button>
+            </div>
+        </div>
+
+        <div id="invoice-list">
+            <div class="empty-state">No invoices found.<br><small>Click Upload PDF to begin.</small></div>
+        </div>
+
+        <div id="status-bar">
+            <span class="dot"></span>
+            <span id="status-text">Ready to process.</span>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>
