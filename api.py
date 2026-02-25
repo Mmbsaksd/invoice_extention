@@ -12,7 +12,6 @@ from core.engine import process_invoice
 from core.storage import session_store, InvoiceData
 from core.config import init_config
 
-# --- Setup ---
 init_config()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,10 +26,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Endpoints ---
 @app.post("/upload", response_model=List[InvoiceData])
 async def upload_invoices(files: List[UploadFile] = File(...)):
-    """Upload PDFs, extract data, and save to session."""
+    """Upload PDF invoices and extract their details."""
     async def process_file(file):
         with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
             tmp.write(await file.read())

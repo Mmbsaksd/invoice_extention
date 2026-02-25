@@ -1,59 +1,97 @@
-// Merged Content Script: Search & Fill
+/* 
+  Invoice Assistant - Content Script
+  This script runs DIRECTLY inside the webpage (like SAP, Oracle, etc.).
+  It waits for a command from the extension, finds the fields, and types the data.
+*/
+
 (() => {
-    chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
-        if (req.action === "FILL") {
-            const data = req.data;
-            const fields = [
-                { k: "supplier", l: ["Supplier", "Vendor", "Name", "LIFNR"] },
-                { k: "invoice_date", l: ["Invoice Date", "Doc Date", "BLDAT"] },
-                { k: "posting_date", l: ["Posting Date", "Pstng Date", "BUDAT"] },
-                { k: "reference", l: ["Reference", "Invoice #", "XBLNR"] },
-                { k: "amount", l: ["Amount", "Gross", "WRBTR"] },
-                { k: "tax_amount", l: ["Tax", "VAT", "WMWST"] }
+    // Listen for the "FILL" command from the extension popup
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === "FILL") {
+            const invoiceData = request.data;
+
+            // Define what we are looking for and what labels might name them
+            const fieldMap = [
+                { key: "supplier", labels: ["Supplier", "Vendor", "Name", "LIFNR"] },
+                { key: "invoice_date", labels: ["Invoice Date", "Doc Date", "BLDAT", "Inv Date"] },
+                { key: "posting_date", labels: ["Posting Date", "Pstng Date", "BUDAT"] },
+                { key: "reference", labels: ["Reference", "Invoice #", "XBLNR", "Doc #"] },
+                { key: "amount", labels: ["Amount", "Gross", "WRBTR", "Total"] },
+                { key: "tax_amount", labels: ["Tax", "VAT", "WMWST"] }
             ];
 
-            let filled = 0;
-            fields.forEach(f => {
-                const el = findField(f.l);
-                if (el && data[f.k]) {
-                    inject(el, data[f.k]);
-                    filled++;
+            let countFilled = 0;
+
+            // For each piece of data, find the box and fill it
+            fieldMap.forEach(field => {
+                const element = findTargetElement(field.labels);
+                const value = invoiceData[field.key];
+
+                if (element && value) {
+                    fillValueIntoElement(element, value);
+                    countFilled++;
                 }
             });
-            sendResponse({ success: true, filled });
+
+            console.log(`Invoice Assistant: Filled ${countFilled} fields.`);
+            sendResponse({ success: true, filled: countFilled });
         }
     });
 
-    function findField(labels) {
-        // 1. Direct match
-        const sel = labels.map(l => `[id*="${l}" i], [name*="${l}" i], [placeholder*="${l}" i]`).join(',');
-        const direct = document.querySelector(sel);
-        if (direct && isVisible(direct)) return direct;
+    /**
+     * Logic to find a text box based on common SAP/Web names or labels next to it.
+     */
+    function findTargetElement(labels) {
+        // Step A: Search for common IDs/Names that contain our label
+        // Example: Look for any box with 'id' containing 'Supplier'
+        const selector = labels.map(l => `[id*="${l}" i], [name*="${l}" i], [placeholder*="${l}" i]`).join(',');
+        const directMatch = document.querySelector(selector);
+        if (directMatch && isVisible(directMatch)) return directMatch;
 
-        // 2. Proximity/Label match
-        const inputs = Array.from(document.querySelectorAll('input:not([type="hidden"]), textarea'));
-        for (let l of labels) {
-            const lEl = Array.from(document.querySelectorAll('label, span, b, div')).find(e =>
-                e.innerText.toLowerCase().includes(l.toLowerCase()) && e.innerText.length < 30
+        // Step B: Search for a Label text (like "Name:") and find the input box next to it
+        const allInputs = Array.from(document.querySelectorAll('input:not([type="hidden"]), textarea'));
+        for (let labelText of labels) {
+            // Find a piece of text on the page that matches our label
+            const labelElement = Array.from(document.querySelectorAll('label, span, b, div')).find(el =>
+                el.innerText.toLowerCase().includes(labelText.toLowerCase()) && el.innerText.length < 30
             );
-            if (lEl) {
-                const rect = lEl.getBoundingClientRect();
-                const nearby = inputs.find(i => {
-                    const iRect = i.getBoundingClientRect();
-                    return Math.abs(rect.top - iRect.top) < 20 && iRect.left > rect.left;
+
+            if (labelElement) {
+                const labelRect = labelElement.getBoundingClientRect();
+                // Find an input box that is on the same line as the label
+                const nearbyInput = allInputs.find(input => {
+                    const inputRect = input.getBoundingClientRect();
+                    const isSameLine = Math.abs(labelRect.top - inputRect.top) < 20;
+                    const isToTheRight = inputRect.left > labelRect.left;
+                    return isSameLine && isToTheRight;
                 });
-                if (nearby) return nearby;
+                if (nearbyInput) return nearbyInput;
             }
         }
         return null;
     }
 
-    function inject(el, val) {
-        el.focus();
-        const setter = Object.getOwnPropertyDescriptor(el instanceof HTMLTextAreaElement ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype, 'value')?.set;
-        if (setter) setter.call(el, val);
-        else el.value = val;
-        ['input', 'change', 'blur'].forEach(e => el.dispatchEvent(new Event(e, { bubbles: true })));
+    /**
+     * Skillfully injects text into a box so the webpage knows it has changed.
+     * (Standard typing often fails on modern websites like React/SAP UI5).
+     */
+    function fillValueIntoElement(element, value) {
+        element.focus();
+
+        // We use a "Descriptor Setter" to bypass website frameworks that might block programmatic typing
+        const prototype = element instanceof HTMLTextAreaElement ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+        const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+
+        if (setter) {
+            setter.call(element, value); // Force the value in
+        } else {
+            element.value = value; // Fallback to simple method
+        }
+
+        // Tell the website "Hey, a human just typed something here!"
+        ['input', 'change', 'blur'].forEach(evtName => {
+            element.dispatchEvent(new Event(evtName, { bubbles: true }));
+        });
     }
 
     function isVisible(el) {

@@ -1,33 +1,41 @@
-chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
-    if (req.action === "FILL") {
-        fillForm(req.data).then(sendResponse);
-        return true;
-    }
-});
+/* 
+  Invoice Assistant - Background Script
+  This script runs in the background of Chrome. 
+  Its job is to take messages from the POPUP and send them to the WEBPAGE.
+*/
 
-async function fillForm(data) {
-    try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tab) return { success: false, error: "No tab" };
+// Listen for messages from popup.js
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
-        // Ensure script is present
-        await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ["content.js"]
-        }).catch(() => { }); // Already there or error, it's fine
+    // When the popup asks to "FILL" a form...
+    if (request.action === "FILL") {
 
-        return await chrome.tabs.sendMessage(tab.id, req);
-    } catch (e) {
-        return { success: false, error: e.message };
-    }
-}
+        // 1. Find the tab the user is currently looking at
+        chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+            if (!tabs[0]) return;
 
-// Fixed background script to simple relay
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.action === "FILL") {
-        chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-            chrome.tabs.sendMessage(tabs[0].id, msg, sendResponse);
+            const activeTabId = tabs[0].id;
+
+            try {
+                // 2. Ensure our "Content Script" is actually running on that page
+                // We "inject" it just in case the page hasn't loaded it yet
+                await chrome.scripting.executeScript({
+                    target: { tabId: activeTabId },
+                    files: ["content.js"]
+                });
+
+                // 3. Send the data to content.js on that specific page
+                chrome.tabs.sendMessage(activeTabId, request, (response) => {
+                    // Send the webpage's answer back to the popup
+                    sendResponse(response);
+                });
+
+            } catch (err) {
+                console.error("Failed to communicate with page:", err);
+                sendResponse({ success: false, error: "Is the page fully loaded?" });
+            }
         });
-        return true;
+
+        return true; // Keep the communication line open for the response
     }
 });

@@ -1,72 +1,74 @@
-# 🧾 Invoice Assistant: Start Here Guide
+# Invoice Assistant: Simple Build Guide
 
-This guide is for anyone who wants to build this system from scratch. We keep it simple and direct.
+This guide helps you build the Invoice Assistant step-by-step. It is designed to be easy to follow, even if you are just starting out.
 
 ---
 
-## 🏗️ System Design (The Simple View)
+## System Design
 
-This is how the system "thinks" and moves data:
+This flowchart shows how data moves through the system:
 
 ```mermaid
 flowchart TD
-    A[User's PDF File] -->|Upload| B(Python API)
-    B -->|OCR & AI| C{The Brain: Engine}
-    C -->|Extract| D[Structured Data: JSON]
-    D -->|Save| E[Session Store: JSON File]
-    E -->|Show| F[Chrome Extension UI]
-    F -->|Click Fill| G[SAP Web Form]
+    Start(PDF File) --> Upload[Python API]
+    Upload --> Brain{AI Engine}
+    Brain --> Data[Clean Invoice Data]
+    Data --> Store[Saved to JSON]
+    Store --> UI[Chrome Extension]
+    UI --> SAP[Autofill Web Form]
 ```
 
 ---
 
-## �️ Step-by-Step Build Guide
+## Step-by-Step Build Path
 
-If you are building this from scratch, follow this exact path:
+Follow these steps in order to build the project from scratch:
 
-### 1️⃣ The Foundation (`core/config.py`)
-*   **What it does**: Handles your API keys (Azure, OpenAI, or Gemini).
-*   **Why first?**: Without keys, the AI cannot "read" anything.
+### The Foundation (core/config.py)
+*   **Purpose**: Manages your AI keys (like OpenAI or Gemini).
+*   **Why first?**: The AI needs these keys to "read" your invoices.
 
-### 2️⃣ The Memory (`core/storage.py`)
-*   **What it does**: Saves your data to `session_data.json`.
-*   **Why second?**: You need a place to put the data once the AI extracts it. 
-*   **Pro Tip**: We use a "Composite Key" (Vendor + Invoice Number) to make sure we never save the same invoice twice.
+### The Memory (core/storage.py)
+*   **Purpose**: Saves the extracted data so you don't lose it.
+*   **Why second?**: You need a "bucket" to hold the data the AI finds.
 
-### 3️⃣ The Brain (`core/engine.py`)
-*   **What it does**: This is the most important file. It uses AI to turn a messy PDF into clean data.
-*   **File Path**: `invoice_extraction/core/engine.py`
+### The Brain (core/engine.py)
+*   **Purpose**: This is the heart of the system. It turns a PDF into structured information.
+*   **Key Logic**: It uses OCR (to read images) and AI (to understand the text).
 
-### 4️⃣ The Connector (`api.py`)
-*   **What it does**: It's a "Bridge". It lets the Chrome Extension (Frontend) talk to your Python code (Backend).
-*   **File Path**: `invoice_extraction/api.py` (In the root folder).
+### The Bridge (api.py)
+*   **Purpose**: Connects the Python code to the Chrome Extension.
+*   **Location**: Root folder.
 
-### 5️⃣ The Interface (`extension/`)
-*   **What it does**: The buttons you click in Chrome.
-*   **Logic**: It sends the PDF to the Connector, gets the data back, and "types" it into SAP for you.
-
----
-
-## 🚦 How to Start (Quick Setup)
-
-1.  **Install Requirements**:
-    ```bash
-    pip install -r requirements.txt
-    ```
-2.  **Add your Keys**:
-    Create a `.env` file and paste your OpenAI or Google API keys.
-3.  **Run the System**:
-    ```bash
-    python run.py
-    ```
-4.  **Load the Extension**:
-    Go to `chrome://extensions/` and load the `extension` folder.
+### The User Interface (extension/)
+*   **Purpose**: The popup buttons in your browser.
+*   **What it does**: Lets you upload PDFs and click "Fill" to type data into SAP automatically.
 
 ---
 
-## 📂 Summary of the Path
-To build this, go in this order:
-`Config` ➡️ `Storage` ➡️ `Engine` ➡️ `API` ➡️ `Extension`
+## Quick Setup Guide
+
+**1. Install Dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+**2. Setup Keys**
+Create a `.env` file in the root and add your API keys.
+
+**3. Run the App**
+```bash
+python run.py
+```
+
+**4. Add to Chrome**
+Open `chrome://extensions/` and load the `extension` folder.
+
+---
+
+## Build Summary
+Build in this logical order: 
+**Config** → **Storage** → **Engine** → **API** → **Extension**
 
 > [!TIP]
-> Always keep your logic simple. If you find yourself making 100 files, stop and use the flattened structure we have here!
+> Keep your code clean and flat. A simple design is a powerful design!

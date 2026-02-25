@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
     <title>Invoice Assistant</title>
     <style>
+        /* Theme Variables */
         :root {
             --p: #10a37f;
             --bg: #111;
@@ -12,6 +13,16 @@
             --t: #eee;
             --td: #999;
             --b: #333;
+            --hover: #2a2a2a;
+        }
+
+        [data-theme="light"] {
+            --bg: #f5f5f5;
+            --c: #fff;
+            --t: #222;
+            --td: #666;
+            --b: #ddd;
+            --hover: #f0f0f0;
         }
 
         body {
@@ -21,14 +32,17 @@
             color: var(--t);
             margin: 0;
             padding: 12px;
+            transition: background 0.3s;
         }
 
+        /* Header Layout */
         .head {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding-bottom: 8px;
             border-bottom: 1px solid var(--b);
+            margin-bottom: 12px;
         }
 
         .title {
@@ -37,8 +51,47 @@
             font-size: 15px;
         }
 
+        /* Theme Toggle Switch */
+        .theme-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--td);
+            cursor: pointer;
+        }
+
+        .toggle {
+            width: 28px;
+            height: 14px;
+            background: var(--b);
+            border-radius: 10px;
+            position: relative;
+            transition: 0.3s;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #fff;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: 0.3s;
+        }
+
+        [data-theme="light"] .toggle {
+            background: var(--p);
+        }
+
+        [data-theme="light"] .toggle::after {
+            left: 16px;
+        }
+
+        /* Invoice List & Cards */
         #list {
-            margin: 12px 0;
             max-height: 400px;
             overflow-y: auto;
         }
@@ -49,36 +102,94 @@
             border-radius: 8px;
             padding: 12px;
             margin-bottom: 10px;
-            position: relative;
+            transition: 0.2s;
+        }
+
+        .card:hover {
+            border-color: var(--p);
+            background: var(--hover);
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
 
         .vendor {
             font-weight: 600;
             font-size: 13px;
-            margin-bottom: 4px;
-            display: block;
-            max-width: 180px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            color: var(--t);
+        }
+
+        /* Dropdown Symbol (Chevron) */
+        .symbol {
+            font-size: 18px;
+            color: var(--td);
+            cursor: pointer;
+            line-height: 1;
+            transition: transform 0.3s, color 0.2s;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid transparent;
+        }
+
+        .symbol:hover {
+            color: var(--p);
+            background: rgba(16, 163, 127, 0.1);
+        }
+
+        .symbol.open {
+            transform: rotate(180deg);
+            color: var(--p);
         }
 
         .info {
             font-size: 12px;
             color: var(--td);
+            margin-top: 4px;
         }
 
+        /* Complete Information (Hidden by default) */
+        .details-box {
+            display: none;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--b);
+            font-size: 11px;
+            color: var(--td);
+            line-height: 1.6;
+        }
+
+        .details-box.open {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Buttons */
         .btns {
             display: flex;
             gap: 8px;
-            margin-top: 10px;
+            margin-top: 12px;
         }
 
         button {
             flex: 1;
             border: none;
-            border-radius: 4px;
-            padding: 6px;
+            border-radius: 6px;
+            padding: 7px;
             font-size: 11px;
             font-weight: 600;
             cursor: pointer;
@@ -89,8 +200,9 @@
             background: transparent;
             color: var(--p);
             border: 1px solid var(--p);
-            padding: 4px 10px;
             flex: none;
+            padding: 4px 12px;
+            height: 28px;
         }
 
         .b-fill {
@@ -109,10 +221,13 @@
             font-size: 18px;
             padding: 0 4px;
             flex: none;
+            display: flex;
+            align-items: center;
         }
 
         button:hover {
             opacity: 0.8;
+            transform: translateY(-1px);
         }
 
         .stat {
@@ -121,8 +236,9 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            padding-top: 8px;
+            padding-top: 10px;
             border-top: 1px solid var(--b);
+            margin-top: 8px;
         }
 
         .dot {
@@ -144,16 +260,26 @@
 <body>
     <div class="head">
         <span class="title">Invoice Assistant</span>
-        <div style="display:flex;gap:4px">
-            <input type="file" id="files" style="display:none" multiple accept=".pdf">
-            <button class="b-up" onclick="document.getElementById('files').click()">Upload</button>
-            <button class="b-refresh" id="clear">↻</button>
+        <div class="theme-box" id="theme-toggle">
+            <span>Light</span>
+            <div class="toggle"></div>
         </div>
     </div>
-    <div id="list">
-        <div class="empty">Ready for invoices.</div>
+
+    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div style="display:flex;gap:4px">
+            <input type="file" id="files" style="display:none" multiple accept=".pdf">
+            <button class="b-up" id="btn-upload">Upload PDF</button>
+        </div>
+        <button class="b-refresh" id="clear" title="Clear Session">↻</button>
     </div>
+
+    <div id="list">
+        <div class="empty">Connect to Backend or Upload PDF.</div>
+    </div>
+
     <div class="stat"><span class="dot"></span><span id="msg">Standby</span></div>
+
     <script src="popup.js"></script>
 </body>
 

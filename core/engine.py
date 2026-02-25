@@ -15,11 +15,13 @@ from langchain_core.prompts import ChatPromptTemplate
 from core.config import get_env
 from core.storage import InvoiceData, InvoiceList
 
-# --- Logging ---
 logger = logging.getLogger(__name__)
 
 def get_llm():
-    """Deterministic LLM Factory."""
+    """
+    This is the 'Brain Factory'. It picks which AI service to use 
+    based on your secret keys in the .env file.
+    """
     if get_env("AZURE_OPENAI_API_KEY"):
         return AzureChatOpenAI(
             azure_endpoint=get_env("AZURE_OPENAI_ENDPOINT"),
@@ -32,19 +34,23 @@ def get_llm():
         return ChatOpenAI(model="gpt-4o", temperature=0, request_timeout=60)
     if get_env("GOOGLE_API_KEY"):
         return ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0, request_timeout=60)
-    raise ValueError("Missing API Keys.")
+    raise ValueError("Missing API Keys. Please check your .env file.")
 
 def extract_text(pdf_path: str) -> str:
-    """PDF Text extraction with OCR fallback."""
+    """
+    Step 1: Get text from the PDF.
+    If the PDF is an image (scanned), it uses OCR (Tesseract) as a backup.
+    """
     text = ""
     try:
         reader = PdfReader(pdf_path)
         text = "\n".join([p.extract_text() for p in reader.pages if p.extract_text()])
     except Exception as e:
-        logger.warning(f"Metadata extraction failed: {e}")
+        logger.warning(f"Could not read text metadata: {e}")
 
+    # If the text is too short, the PDF is likely just an image
     if len(text.strip()) < 50:
-        logger.info("Low text density, attempting OCR...")
+        logger.info("Scanned document detected. Running OCR...")
         if shutil.which("pdftoppm") and shutil.which("tesseract"):
             try:
                 images = convert_from_path(pdf_path)
@@ -104,7 +110,7 @@ def validate_invoice(data: dict) -> dict:
 
 def process_invoice(pdf_path: str):
     """Main pipeline for extraction and validation."""
-    logger.info(f"--- Starting Extraction Audit: {os.path.basename(pdf_path)} ---")
+    logger.info(f"Processing invoice: {os.path.basename(pdf_path)}")
     raw_text = extract_text(pdf_path)
     if not raw_text.strip():
         logger.error("No text found.")

@@ -6,7 +6,10 @@ from pydantic import BaseModel, Field
 STORAGE_FILE = "session_data.json"
 
 class InvoiceData(BaseModel):
-    """Production Schema for Validated Invoices."""
+    """
+    Standard format for a single invoice.
+    Having a 'Schema' ensures the AI always gives us the same fields.
+    """
     supplier: Optional[str] = Field(None)
     invoice_date: Optional[str] = Field(None)
     reference: Optional[str] = Field(None)
@@ -19,7 +22,10 @@ class InvoiceList(BaseModel):
     invoices: List[InvoiceData]
 
 class SessionStore:
-    """Persistently manages pending invoices with robust deduplication."""
+    """
+    Memory of the app. It saves invoices to a file (session_data.json)
+    so you don't lose data when the server restarts.
+    """
     def __init__(self):
         self.invoices: List[dict] = []
         self._load()
