@@ -1,112 +1,72 @@
-# 🧾 Invoice Assistant: AI-Powered SAP Automation
+# 🧾 Invoice Assistant: Start Here Guide
 
-A production-grade, modular system for extracting invoice data using AI and automating entry into SAP or any web-based form via a Chrome Extension.
+This guide is for anyone who wants to build this system from scratch. We keep it simple and direct.
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ System Design (The Simple View)
 
-The project follows a **Lean Backend + Intelligent UI** architecture.
+This is how the system "thinks" and moves data:
 
 ```mermaid
-graph TD
-    subgraph "Client Side (Chrome Extension)"
-        ExtUI[Popup UI] -->|Upload PDF| API
-        ExtUI -->|Fill Request| CS[Content Script]
-        CS -->|DOM Injection| SAP[SAP Web Form]
-    end
-
-    subgraph "Server Side (FastAPI)"
-        API[api.py] -->|Process| Engine[core/engine.py]
-        Engine -->|1. Extract| OCR[OCR / PDF Reader]
-        Engine -->|2. Analyze| LLM[AI / LLM Engine]
-        Engine -->|3. Validate| Validator[Rules Engine]
-        API -->|Save/Load| Store[core/storage.py]
-        Store -->|Persistence| JSON[session_data.json]
-    end
-
-    subgraph "External Services"
-        LLM --- OpenAI[Azure OpenAI / GPT-4o]
-        LLM --- Gemini[Google Gemini 1.5 Pro]
-    end
+flowchart TD
+    A[User's PDF File] -->|Upload| B(Python API)
+    B -->|OCR & AI| C{The Brain: Engine}
+    C -->|Extract| D[Structured Data: JSON]
+    D -->|Save| E[Session Store: JSON File]
+    E -->|Show| F[Chrome Extension UI]
+    F -->|Click Fill| G[SAP Web Form]
 ```
 
 ---
 
-## 🚀 Beginner's Guide: Start From Scratch
+## �️ Step-by-Step Build Guide
 
-Follow this order to build or understand the system step-by-step.
+If you are building this from scratch, follow this exact path:
 
-### Step 1: Core Intelligence (`core/engine.py`)
-This is the "Brain" of the project.
-- **Requirement**: Build a pipeline that takes a PDF and returns structured JSON.
-- **Logic**: Use `pypdf` for text, `pytesseract` for OCR backup, and `LangChain` to talk to AI.
-- **Key Task**: Create a "Structured Output" schema using Pydantic so the AI always returns valid JSON.
+### 1️⃣ The Foundation (`core/config.py`)
+*   **What it does**: Handles your API keys (Azure, OpenAI, or Gemini).
+*   **Why first?**: Without keys, the AI cannot "read" anything.
 
-### Step 2: Storage & Session (`core/storage.py`)
-Ensures data isn't lost when you close the browser.
-- **Requirement**: Save extracted invoices to a file.
-- **Logic**: Manage a list of invoices and deduplicate them using a "Composite Key" (Supplier + Invoice Number).
+### 2️⃣ The Memory (`core/storage.py`)
+*   **What it does**: Saves your data to `session_data.json`.
+*   **Why second?**: You need a place to put the data once the AI extracts it. 
+*   **Pro Tip**: We use a "Composite Key" (Vendor + Invoice Number) to make sure we never save the same invoice twice.
 
-### Step 3: Backend Delivery (`api.py`)
-Exposes the core logic to the outside world.
-- **Requirement**: Create a Web Server.
-- **Logic**: Use `FastAPI` to create endpoints like `/upload` and `/invoices`. This allows the extension to "talk" to the Python backend.
+### 3️⃣ The Brain (`core/engine.py`)
+*   **What it does**: This is the most important file. It uses AI to turn a messy PDF into clean data.
+*   **File Path**: `invoice_extraction/core/engine.py`
 
-### Step 4: The Intelligent UI (`extension/`)
-The interface for the user.
-- **Requirement**: A Chrome extension to handle uploads and automate forms.
-- **Logic**: 
-    - `popup.js`: Communicates with the API.
-    - `content.js`: Injects data into SAP form fields by selecting the right HTML IDs.
+### 4️⃣ The Connector (`api.py`)
+*   **What it does**: It's a "Bridge". It lets the Chrome Extension (Frontend) talk to your Python code (Backend).
+*   **File Path**: `invoice_extraction/api.py` (In the root folder).
+
+### 5️⃣ The Interface (`extension/`)
+*   **What it does**: The buttons you click in Chrome.
+*   **Logic**: It sends the PDF to the Connector, gets the data back, and "types" it into SAP for you.
 
 ---
 
-## 🛠️ Quick Setup (Local Environment)
+## 🚦 How to Start (Quick Setup)
 
-### 1. Prerequisites
-- **Python 3.10+**
-- **Tesseract-OCR**: [Download here](https://github.com/UB-Mannheim/tesseract/wiki) (Required for image-based PDFs).
-- **Poppler**: (Required for PDF conversion).
-
-### 2. Environment Configuration
-Create a `.env` file in the root:
-```env
-# AI Keys (choose one or more)
-AZURE_OPENAI_API_KEY=your_key
-OPENAI_API_KEY=your_key
-GOOGLE_API_KEY=your_key
-
-# Azure Specifics (if using Azure)
-AZURE_OPENAI_ENDPOINT=https://xxx.openai.azure.com/
-AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
-AZURE_OPENAI_API_VERSION=2024-02-15-preview
-```
-
-### 3. Install Dependencies
-```powershell
-pip install -r requirements.txt
-```
-
-### 4. Run the System
-```powershell
-python run.py
-```
+1.  **Install Requirements**:
+    ```bash
+    pip install -r requirements.txt
+    ```
+2.  **Add your Keys**:
+    Create a `.env` file and paste your OpenAI or Google API keys.
+3.  **Run the System**:
+    ```bash
+    python run.py
+    ```
+4.  **Load the Extension**:
+    Go to `chrome://extensions/` and load the `extension` folder.
 
 ---
 
-## 📂 Project Structure (Refined)
+## 📂 Summary of the Path
+To build this, go in this order:
+`Config` ➡️ `Storage` ➡️ `Engine` ➡️ `API` ➡️ `Extension`
 
-- `core/`: The heart of the system (Engine, Storage, Config).
-- `extension/`: The Chrome Extension (UI & Automation).
-- `notebook/`: A detailed Jupyter Notebook for testing and guide.
-- `api.py`: The main REST API server.
-- `run.py`: One-click system launcher.
-
----
-
-## 🛠️ Tech Stack
-- **Backend**: Python, FastAPI, LangChain.
-- **AI**: GPT-4o / Gemini 1.5 Pro.
-- **Automation**: Javascript (Chrome Scripting API).
-- **OCR**: Tesseract, Pdf2Image.
+> [!TIP]
+> Always keep your logic simple. If you find yourself making 100 files, stop and use the flattened structure we have here!
