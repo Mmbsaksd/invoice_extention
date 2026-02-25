@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice Assistant</title>
+    <style>
+        :root {
+            --p: #10a37f;
+            --bg: #111;
+            --c: #1e1e1e;
+            --t: #eee;
+            --td: #999;
+            --b: #333;
+        }
+
+        body {
+            width: 320px;
+            font-family: system-ui;
+            background: var(--bg);
+            color: var(--t);
+            margin: 0;
+            padding: 12px;
+        }
+
+        .head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--b);
+        }
+
+        .title {
+            color: var(--p);
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        #list {
+            margin: 12px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .card {
+            background: var(--c);
+            border: 1px solid var(--b);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .vendor {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 4px;
+            display: block;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .info {
+            font-size: 12px;
+            color: var(--td);
+        }
+
+        .btns {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        button {
+            flex: 1;
+            border: none;
+            border-radius: 4px;
+            padding: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .b-up {
+            background: transparent;
+            color: var(--p);
+            border: 1px solid var(--p);
+            padding: 4px 10px;
+            flex: none;
+        }
+
+        .b-fill {
+            background: var(--p);
+            color: #fff;
+        }
+
+        .b-skip {
+            background: var(--b);
+            color: var(--t);
+        }
+
+        .b-refresh {
+            background: none;
+            color: var(--td);
+            font-size: 18px;
+            padding: 0 4px;
+            flex: none;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        .stat {
+            font-size: 11px;
+            color: var(--td);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding-top: 8px;
+            border-top: 1px solid var(--b);
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--p);
+            border-radius: 50%;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--td);
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="head">
+        <span class="title">Invoice Assistant</span>
+        <div style="display:flex;gap:4px">
+            <input type="file" id="files" style="display:none" multiple accept=".pdf">
+            <button class="b-up" onclick="document.getElementById('files').click()">Upload</button>
+            <button class="b-refresh" id="clear">↻</button>
+        </div>
+    </div>
+    <div id="list">
+        <div class="empty">Ready for invoices.</div>
+    </div>
+    <div class="stat"><span class="dot"></span><span id="msg">Standby</span></div>
+    <script src="popup.js"></script>
+</body>
+
+</html>
