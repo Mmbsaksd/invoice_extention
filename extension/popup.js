@@ -111,14 +111,35 @@ chrome.storage.local.get('theme', (res) => {
 $("btn-upload").onclick = () => $("files").click();
 $("files").onchange = async (e) => {
     if (!e.target.files.length) return;
+    if (e.target.files.length > 10) {
+        alert("Maximum 10 files allowed at once.");
+        e.target.value = "";
+        return;
+    }
     $("msg").innerText = "Uploading...";
     const fd = new FormData();
     for (let f of e.target.files) fd.append('files', f);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
     try {
-        await fetch(`${API}/upload`, { method: 'POST', body: fd });
+        const response = await fetch(`${API}/upload`, {
+            method: 'POST',
+            body: fd,
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || "Server Error");
+        }
+
         $("msg").innerText = "Done!";
         UI.load();
-    } catch (e) { $("msg").innerText = "Upload Error"; }
+    } catch (e) {
+        $("msg").innerText = e.name === 'AbortError' ? "Upload Timeout (60s)" : "Error: " + e.message;
+    }
     e.target.value = "";
 };
 

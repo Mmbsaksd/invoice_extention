@@ -28,7 +28,9 @@ app.add_middleware(
 
 @app.post("/upload", response_model=List[InvoiceData])
 async def upload_invoices(files: List[UploadFile] = File(...)):
-    """Upload PDF invoices and extract their details."""
+    """Upload PDF invoices and extract their details (Max 10)."""
+    if len(files) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 files allowed at once.")
     async def process_file(file):
         with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
             tmp.write(await file.read())
@@ -39,7 +41,10 @@ async def upload_invoices(files: List[UploadFile] = File(...)):
             if os.path.exists(path): os.remove(path)
 
     try:
-        results = await asyncio.gather(*(process_file(f) for f in files))
+        results = await asyncio.wait_for(
+            asyncio.gather(*(process_file(f) for f in files)),
+            timeout=120.0
+        )
         flat_results = [item for sublist in results for item in sublist]
         session_store.add_invoices(flat_results)
         return flat_results
